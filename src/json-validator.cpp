@@ -25,7 +25,7 @@
  */
 #include <json-schema.hpp>
 
-#include <regex>
+#include <regex.h>
 #include <set>
 
 using nlohmann::json;
@@ -597,12 +597,14 @@ void json_validator::validate_object(const json &instance, const json &schema, c
 
 		for (auto pp = patternProperties.begin();
 		     pp != patternProperties.end(); ++pp) {
-			std::regex re(pp.key(), std::regex::ECMAScript);
+			regex_t preg;
+			regcomp(&preg, pp.key().c_str(), 0);
 
-			if (std::regex_search(child.key(), re)) {
+			if (regexec(&preg, child.key().c_str(), 0, nullptr, 0) == 0) {
 				validate(child.value(), pp.value(), child_name);
 				property_or_patternProperties_has_validated = true;
 			}
+			regfree(&preg);
 		}
 		if (property_or_patternProperties_has_validated)
 			continue;
@@ -700,8 +702,19 @@ void json_validator::validate_string(const json &instance, const json &schema, c
 	// pattern
 	attr = schema.find("pattern");
 	if (attr != schema.end()) {
-		std::regex re(attr.value().get<std::string>(), std::regex::ECMAScript);
-		if (!std::regex_search(instance.get<std::string>(), re))
+
+		regex_t preg;
+		std::string pattern = attr.value().get<std::string>();
+
+		regcomp(&preg, pattern.c_str(), 0);
+
+		std::string str = instance.get<std::string>();
+
+		int ret = regexec(&preg, str.c_str(), 0, nullptr, 0);
+
+		regfree(&preg);
+
+		if (ret != 0)
 			throw std::invalid_argument(instance.get<std::string>() + " does not match regex pattern: " + attr.value().get<std::string>() + " for " + name);
 	}
 
