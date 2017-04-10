@@ -1,6 +1,7 @@
 project(json-schema-validator CXX)
 
 cmake_minimum_required(VERSION 3.2)
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
 
 # if used as a subdirectory just define a json-hpp-target (INTERFACE)
 if(NOT TARGET json-hpp)
